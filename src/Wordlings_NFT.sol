@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Burn
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC1155PausableUpgradeable, ERC1155BurnableUpgradeable, UUPSUpgradeable {
+contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC1155PausableUpgradeable, ERC1155BurnableUpgradeable, UUPSUpgradeable {
     
     // GAME-RULES
     
@@ -50,6 +50,7 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC11
         __UUPSUpgradeable_init();
     }
 
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function setURI(string memory newuri) public onlyOwner {
         _setURI(newuri);
@@ -80,15 +81,14 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC11
     // The following functions are overrides required by Solidity.
     function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
         internal
-        override(ERC1155, ERC1155Pausable)
+        override(ERC1155Upgradeable, ERC1155PausableUpgradeable)
     {
         super._update(from, to, ids, values);
     }
 
-
     // function that puts a cooldowntime of 15 minutes after 20 NFTs have minted
     // If totalMinted amount is divisible by 20, then it will mean that the countdown kicks in
-    function wordlingsNFT() public onlyWhenGameStarted {
+    function wordlingsNFT() public payable onlyWhenGameStarted {
         // require(nftMinted[msg.sender] % 20 != 0, "You have to wait for 15 minutes to mint more NFTs");
         if ( nftMinted[msg.sender] % 20 == 0 ){
             require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
