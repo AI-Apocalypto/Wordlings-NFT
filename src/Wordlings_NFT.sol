@@ -89,7 +89,6 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     // function that puts a cooldowntime of 15 minutes after 20 NFTs have minted
     // If totalMinted amount is divisible by 20, then it will mean that the countdown kicks in
     function wordlingsNFT() public payable onlyWhenGameStarted {
-        // require(nftMinted[msg.sender] % 20 != 0, "You have to wait for 15 minutes to mint more NFTs");
         if ( nftMinted[msg.sender] % 20 == 0 ){
             require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
         }
@@ -114,6 +113,12 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     // function that creates random number from 1 to 71
     function random() internal view returns (uint256) {
         return uint256(keccak256(abi.encodePacked(block.difficulty, block.timestamp, block.number))) % 71 + 1;
+    }
+
+    // function to remove all ether from the smart contract
+    function withdraw(address receiver) public onlyOwner {
+        require(receiver!=address(0), "Invalid Address");
+        payable(receiver).transfer(address(this).balance);
     }
 
 
