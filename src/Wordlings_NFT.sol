@@ -8,8 +8,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Paus
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
+import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 
-contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC1155PausableUpgradeable, ERC1155BurnableUpgradeable, UUPSUpgradeable {
+contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC1155PausableUpgradeable, ERC1155BurnableUpgradeable, UUPSUpgradeable, IEntropyConsumer{
     
     // GAME-RULES
     
@@ -32,6 +34,17 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     // Mint Fee for NFT
     uint256 MINT_FEE = 5 ether / 100_000; // 0.00005 ETH
 
+    // Pyth Entropy
+    IEntropy entropy;
+    address entropyProvider;
+
+    // Event emitted when Wordlings Mystery Box is request
+    event MysteryBoxRequest(uint64 sequenceNumber);
+
+    // Event emitted when the Wordlings Mystery Box is Minted
+    event MysteryBoxResult(uint64 sequenceNumber, uint256 id);
+
+
     modifier onlyWhenGameStarted() {
         require(gameStarted, "Game session has not started yet");
         _;
@@ -42,12 +55,14 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
         _disableInitializers();
     }
 
-    function initialize(address initialOwner) initializer public {
+    function initialize(address initialOwner, address _entropy, address _provider) initializer public {
         __ERC1155_init("");
         __Ownable_init(initialOwner);
         __ERC1155Pausable_init();
         __ERC1155Burnable_init();
         __UUPSUpgradeable_init();
+        entropy = IEntropy(_entropy);
+        entropyProvider = _provider;
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
@@ -88,7 +103,7 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
 
     // function that puts a cooldowntime of 15 minutes after 20 NFTs have minted
     // If totalMinted amount is divisible by 20, then it will mean that the countdown kicks in
-    function wordlingsNFT() public payable onlyWhenGameStarted {
+    function mintMysteryBox() public payable onlyWhenGameStarted {
         if ( nftMinted[msg.sender] % 20 == 0 ){
             require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
         }
@@ -102,8 +117,8 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
 
     // function to refund the extra amount sent by the user
     function _refund() internal {
-        if (msg.value > MINT_FEE) {
-            payable(msg.sender).transfer(msg.value - MINT_FEE);
+        if (msg.value > MINT_FEE + getMysteryBoxFee()) {
+            payable(msg.sender).transfer(msg.value - MINT_FEE - getMysteryBoxFee());
         }
     }
 
@@ -121,6 +136,57 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
         payable(receiver).transfer(address(this).balance);
     }
 
+    // This method is required by the IEntropyConsumer interface
+    function getEntropy() internal view override returns (address) {
+         return address(entropy);
+    }
+
+    // Entropy from Pyth
+    function requestMysteryBox(bytes32 userRandomNumber) external payable {
+        if ( nftMinted[msg.sender] % 20 == 0 ){
+            require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
+        }
+       
+        // get the required fee
+        uint128 requestFee = entropy.getFee(entropyProvider);
+        
+        // check if the user has sent enough fees
+        // if (msg.value < requestFee) revert("not enough fees");
+        require(msg.value >= MINT_FEE + requestFee, "Insufficient funds to mint NFT");
+ 
+        // pay the fees and request a random number from entropy
+        uint64 sequenceNumber = entropy.requestWithCallback{ value: requestFee }(
+            entropyProvider,
+            userRandomNumber
+        );
+        _refund();
+ 
+        // emit event
+        emit MysteryBoxRequest(sequenceNumber);
+    }
+
+    // Get the fee to flip a coin. See the comment above about fees.
+    function getMysteryBoxFee() public view returns (uint256 fee) {
+        fee = entropy.getFee(entropyProvider);
+    }
+
+     function entropyCallback(
+        uint64 sequenceNumber,
+        // If your app uses multiple providers, you can use this argument
+        // to distinguish which one is calling the app back. This app only
+        // uses one provider so this argument is not used.
+        address ,
+        bytes32 randomNumber
+        ) internal override {
+        uint256 id = uint256(randomNumber) % 71 + 1; // means lowest value can be either 0 + 1 and max value can be 70 + 1 = 71 
+        // uint256 alphabet = random();
+        nftMinted[msg.sender] += 1;
+        lastMintedTime[msg.sender] = block.timestamp;
+        _mint(msg.sender, id, 1, "");
+
+        emit MysteryBoxResult(sequenceNumber, id);
+
+    }
 
 
 

@@ -19,6 +19,9 @@ Deployed to: 0x4CAD1905BD03fb2268F75e8f780D7f11196a9994
 Transaction hash: 0xd16acbb1649ad54f00ca50f0956151346ae0aa2e587bd32ea1658692f48b3254
 ```
 
+## Pyth How to generate Random numbers
+https://docs.pyth.network/entropy/generate-random-numbers
+
 ## Documentation
 
 https://book.getfoundry.sh/
