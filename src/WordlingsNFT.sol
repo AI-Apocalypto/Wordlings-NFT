@@ -29,10 +29,10 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     mapping(address => uint256) public lastMintedTime;
 
     // Cooldown Time
-    uint256 public COOLDOWN_TIME = 15 minutes;
+    uint256 public COOLDOWN_TIME;
 
     // Mint Fee for NFT
-    uint256 public MINT_FEE = 5 ether / 100_000; // 0.00005 ETH
+    uint256 public MINT_FEE; // 0.00005 ETH
 
     // Pyth Entropy
     IEntropy public entropy;
@@ -63,6 +63,9 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
         __UUPSUpgradeable_init();
         entropy = IEntropy(_entropy);
         entropyProvider = _provider;
+        COOLDOWN_TIME = 15 minutes;
+        MINT_FEE = 5 ether / 100_000;
+
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {}

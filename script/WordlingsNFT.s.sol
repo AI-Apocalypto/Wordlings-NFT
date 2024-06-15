@@ -12,7 +12,7 @@ contract MyScript is Script {
 
         address _owner = 0x9131659d334558138548b128E3Ac7557212B5Efe;
 
-        address _entropy = 0x549Ebba8036Ab746611B4fFA1423eb0A4Df61440;
+        address _entropy = 0x98046Bd286715D3B0BC227Dd7a956b83D8978603;
 
         address _provider = 0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344;
 
