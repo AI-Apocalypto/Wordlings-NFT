@@ -20,7 +20,7 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     // NFTs can be minted only when the game session has started
 
     // gameStarted is a boolean variable to keep track of the game session
-    bool gameStarted;
+    bool public gameStarted;
 
     // mapping of owners keeping track of nfts they minted
     mapping(address => uint256) public nftMinted;
@@ -29,14 +29,14 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     mapping(address => uint256) public lastMintedTime;
 
     // Cooldown Time
-    uint256 COOLDOWN_TIME = 15 minutes;
+    uint256 public COOLDOWN_TIME = 15 minutes;
 
     // Mint Fee for NFT
-    uint256 MINT_FEE = 5 ether / 100_000; // 0.00005 ETH
+    uint256 public MINT_FEE = 5 ether / 100_000; // 0.00005 ETH
 
     // Pyth Entropy
-    IEntropy entropy;
-    address entropyProvider;
+    IEntropy public entropy;
+    address public entropyProvider;
 
     // Event emitted when Wordlings Mystery Box is request
     event MysteryBoxRequest(uint64 sequenceNumber);
@@ -101,10 +101,18 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
         super._update(from, to, ids, values);
     }
 
+    function startGame() public onlyOwner {
+        gameStarted = true;
+    }
+
+    function endGame() public onlyOwner {
+        gameStarted = false;
+    }
+
     // function that puts a cooldowntime of 15 minutes after 20 NFTs have minted
     // If totalMinted amount is divisible by 20, then it will mean that the countdown kicks in
     function mintMysteryBox() public payable onlyWhenGameStarted {
-        if ( nftMinted[msg.sender] % 20 == 0 ){
+        if (nftMinted[msg.sender] != 0 && nftMinted[msg.sender] % 20 == 0 ){
             require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
         }
         require(msg.value >= MINT_FEE, "Insufficient funds to mint NFT");
@@ -143,7 +151,7 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
 
     // Entropy from Pyth
     function requestMysteryBox(bytes32 userRandomNumber) external payable {
-        if ( nftMinted[msg.sender] % 20 == 0 ){
+        if ( nftMinted[msg.sender] != 0 && nftMinted[msg.sender] % 20 == 0 ){
             require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
         }
        
@@ -187,22 +195,6 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
         emit MysteryBoxResult(sequenceNumber, id);
 
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     
