@@ -2,16 +2,17 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC1155PausableUpgradeable, ERC1155BurnableUpgradeable, UUPSUpgradeable, IEntropyConsumer{
+
+contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEntropyConsumer{
     
     // GAME-RULES
     
@@ -25,14 +26,24 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     // mapping of owners keeping track of nfts they minted
     mapping(address => uint256) public nftMinted;
 
+    // mapping of owners keeping track of the unique nft they minted
+    mapping(address => uint256[]) public uniqueNftMinted;
+
     // mapping of owners keeping track of the time they minted their last nft
     mapping(address => uint256) public lastMintedTime;
+
+    // mapping of owners based on sequence numbers
+    mapping(uint64 => address) public requestedUsers;
+
+    uint256 public totalMinted = 0;
+
+    using EnumerableMap for EnumerableMap.UintToAddressMap;
 
     // Cooldown Time
     uint256 public COOLDOWN_TIME;
 
     // Mint Fee for NFT
-    uint256 public MINT_FEE; // 0.00005 ETH
+    uint256 public MINT_FEE; // 0.00000005 ETH
 
     // Pyth Entropy
     IEntropy public entropy;
@@ -42,7 +53,7 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     event MysteryBoxRequest(uint64 sequenceNumber);
 
     // Event emitted when the Wordlings Mystery Box is Minted
-    event MysteryBoxResult(uint64 sequenceNumber, uint256 id);
+    event NFTMinted(address user, uint256 nftid);
 
 
     modifier onlyWhenGameStarted() {
@@ -50,25 +61,13 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
-    function initialize(address initialOwner, address _entropy, address _provider) initializer public {
-        __ERC1155_init("");
-        __Ownable_init(initialOwner);
-        __ERC1155Pausable_init();
-        __ERC1155Burnable_init();
-        __UUPSUpgradeable_init();
+    constructor(address initialOwner, address _entropy, address _provider) Ownable(initialOwner) ERC1155(""){
         entropy = IEntropy(_entropy);
         entropyProvider = _provider;
         COOLDOWN_TIME = 15 minutes;
-        MINT_FEE = 5 ether / 100_000;
-
+        MINT_FEE = 5 ether / 100_000_000;
     }
 
-    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function setURI(string memory newuri) public onlyOwner {
         _setURI(newuri);
@@ -97,9 +96,10 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
     // }
 
     // The following functions are overrides required by Solidity.
+
     function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
         internal
-        override(ERC1155Upgradeable, ERC1155PausableUpgradeable)
+        override(ERC1155, ERC1155Pausable)
     {
         super._update(from, to, ids, values);
     }
@@ -114,17 +114,17 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
 
     // function that puts a cooldowntime of 15 minutes after 20 NFTs have minted
     // If totalMinted amount is divisible by 20, then it will mean that the countdown kicks in
-    function mintMysteryBox() public payable onlyWhenGameStarted {
-        if (nftMinted[msg.sender] != 0 && nftMinted[msg.sender] % 20 == 0 ){
-            require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
-        }
-        require(msg.value >= MINT_FEE, "Insufficient funds to mint NFT");
-        uint256 alphabet = random();
-        nftMinted[msg.sender] += 1;
-        lastMintedTime[msg.sender] = block.timestamp;
-        _mint(msg.sender, alphabet, 1, "");
-        _refund();
-    }
+    // function mintMysteryBox() public payable onlyWhenGameStarted {
+    //     if (nftMinted[msg.sender] != 0 && nftMinted[msg.sender] % 20 == 0 ){
+    //         require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
+    //     }
+    //     require(msg.value >= MINT_FEE, "Insufficient funds to mint NFT");
+    //     uint256 alphabet = random();
+    //     nftMinted[msg.sender] += 1;
+    //     lastMintedTime[msg.sender] = block.timestamp;
+    //     _mint(msg.sender, alphabet, 1, "");
+    //     _refund();
+    // }
 
     // function to refund the extra amount sent by the user
     function _refund() internal {
@@ -170,7 +170,10 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
             entropyProvider,
             userRandomNumber
         );
-        _refund();
+
+        requestedUsers[sequenceNumber] = msg.sender;
+
+        // _refund();
  
         // emit event
         emit MysteryBoxRequest(sequenceNumber);
@@ -189,18 +192,27 @@ contract WordlingsNFT is Initializable, ERC1155Upgradeable, OwnableUpgradeable, 
         address ,
         bytes32 randomNumber
         ) internal override {
+       
         uint256 id = uint256(randomNumber) % 71 + 1; // means lowest value can be either 0 + 1 and max value can be 70 + 1 = 71 
-        // uint256 alphabet = random();
-        nftMinted[msg.sender] += 1;
-        lastMintedTime[msg.sender] = block.timestamp;
-        _mint(msg.sender, id, 1, "");
+       
+        address user = requestedUsers[sequenceNumber];
+        totalMinted += 1;
 
-        emit MysteryBoxResult(sequenceNumber, id);
+        if (balanceOf(user, id) == 0 ){
+            uniqueNftMinted[user].push(id);
+        }
 
+        nftMinted[user] += 1;
+        lastMintedTime[user] = block.timestamp;
+        _mint(user, id, 1, "");
+
+        emit NFTMinted(user, id);
     }
 
-
-    
+    // function to get the unique nfts minted by the user
+    function getUniqueNftMinted(address user) public view returns (uint256[] memory) {
+        return uniqueNftMinted[user];
+    }
 }
 
 

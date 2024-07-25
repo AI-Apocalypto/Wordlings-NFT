@@ -12,14 +12,12 @@ contract MyScript is Script {
 
         address _owner = 0x9131659d334558138548b128E3Ac7557212B5Efe;
 
-        address _entropy = 0x98046Bd286715D3B0BC227Dd7a956b83D8978603;
+        address _entropy = 0x5744Cbf430D99456a0A8771208b674F27f8EF0Fb; // blast mainnet address
 
-        address _provider = 0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344;
+        address _provider = 0x52DeaA1c84233F7bb8C8A45baeDE41091c616506; // provider for mainnetxs
 
-        address proxy = Upgrades.deployUUPSProxy(
-            "WordlingsNFT.sol",
-            abi.encodeCall(WordlingsNFT.initialize, (_owner, _entropy, _provider))
-        );
+        WordlingsNFT nft = new WordlingsNFT(_owner, _entropy, _provider);
+
         vm.stopBroadcast();
     }
 }

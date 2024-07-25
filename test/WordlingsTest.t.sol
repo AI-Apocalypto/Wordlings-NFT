@@ -14,21 +14,12 @@ contract WordlingsTest is Test {
     address _entropy = 0x98046Bd286715D3B0BC227Dd7a956b83D8978603;
 
     address _provider = 0x6CC14824Ea2918f5De5C2f75A9Da968ad4BD6344;
-    address payable _proxy;
-    address _implementation;
 
     address public bob = address(0x23);
     address public alice = address(0x55);
 
     function setUp() public {
-        address implementation = address(new WordlingsNFT());
-        bytes memory data = abi.encodeCall(wordlings.initialize, (_owner, _entropy, _provider));
-        address payable proxy = payable(address(new ERC1967Proxy(implementation, data)));
-        _proxy = proxy;
-        _implementation = implementation;
-
-        wordlings = WordlingsNFT(_proxy);
-
+        wordlings = new WordlingsNFT(_owner, _entropy, _provider);
     }
 
     function test_GameState() public {
@@ -39,12 +30,35 @@ contract WordlingsTest is Test {
     function test_mintMysteryBox() public {
         vm.prank(_owner);
         wordlings.startGame();
+        bool stat = wordlings.gameStarted();
+        console.log("Game started: %s", stat);
         deal(bob, 10 ether);
-        console.log("%s", bob.balance);
+        console.log("Bob's balance: %s", bob.balance);
         
-        vm.prank(bob);
-        // bytes32 RANDOM = keccak256("THIS IS RANDOM");
-        wordlings.mintMysteryBox{value: 0.5 ether}();
+        vm.startPrank(bob);
+        bytes32 RANDOM = keccak256("THIS IS RANDOM");
+        wordlings.requestMysteryBox{value: 0.005 ether}(RANDOM);
+        // wordlings.requestMysteryBox{value: 0.5 ether}();
+        // wordlings.requestMysteryBox{value: 0.5 ether}();
+        // wordlings.requestMysteryBox{value: 0.5 ether}();
+
+
+        vm.stopPrank();
+
+        console.log("NFTs minted by Bob: %s", wordlings.nftMinted(bob));
+        // uint256[] memory userArray = ;
+        //    wordlings.uniqueNftMinted(bob,0);
+        //    uint256 userArray = wordlings.uniqueNftMinted(bob,1);
+        // for (uint256 i = 0; i < l; i++) {
+        //     console.log("%s", wordlings.uniqueNftMinted[i]);
+        // }
+        uint256 len = wordlings.getUniqueNftMinted(bob).length;
+        console.log("Unique NFTs Minted by Bob: %s", len);
+        console.log("Total NFTs minted: %s", wordlings.totalMinted());
+        // for (uint256 i = 0; i < len; i++) {
+        //     console.log("%s", wordlings.uniqueNftMinted(bob)[i]);
+        // }
+        // // console.log("%s", bob);
     }
 
 }

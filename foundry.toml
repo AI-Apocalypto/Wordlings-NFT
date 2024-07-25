@@ -12,4 +12,6 @@ extra_output = ["storageLayout"]
 [rpc_endpoints]
 sepolia = "${BLAST_SEPOLIA_RPC_URL}"
 
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
 

@@ -9,10 +9,17 @@ Foundry consists of:
 -   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
 -   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
+## Deploying on Blast Testnet
+```shell
+ forge script --chain 168587773 script/WordlingsNFT.s.sol:MyScript --rpc-url $BLAST_SEPOLIA_RPC_URL --broadcast --verify -vvvv
+```
+
 ## Blast Testnet Forking 
 ```shell
 forge test --fork-url $BLAST_SEPOLIA_RPC_URL --fork-block-number 6896546 -vvvv
 ```
+
+Note: It is highly unlikely that Pyth Entropy will work on Forked network as traditional provider will not be able to fulfill the calls.
 
 ## Pyth CoinFlip Addresses
 ```shell
@@ -30,31 +37,45 @@ Block: 54861077
 Paid: 0.0001294756 ETH (1294756 gas * 0.1 gwei)
 ```
 
-## WordlingsNFT.sol on Blast Sepolia 
+## Tx of 1st NFT Minted
 ```shell
-##### blast-sepolia
-✅  [Success]Hash: 0x62c2c8af94ad681629a476f50a957fcad5005fd67f46aabc3b369d390d4b71b9
+https://blastscan.io/tx/0x5f75d447026ab4abf068aa0b40bb56be1b1f18fde20398085c6c2abb3bab4714
+```
+
+## WordlingsNFT.sol on Blast Mainnet
+```shell
+
+##### blast
+✅  [Success]Hash: 0x9ec454cb7ed8202632549b22c8d5611bb07a454c47c13333aeb5e08b24c350df
 Contract Address: 0x4CAD1905BD03fb2268F75e8f780D7f11196a9994
-Block: 6896545
-Paid: 0.007549434634152456 ETH (2516478 gas * 3.000000252 gwei)
-
-
-##### blast-sepolia
-✅  [Success]Hash: 0x4aaf672141055806dac0e9d5e92ce3c7b7a43e50e6820a7517126df7f5d0bd84
-Contract Address: 0xa6bF27b198f059880b6427E56f88e5f2f67Dbb48
-Block: 6896545
-Paid: 0.000828981069634404 ETH (276327 gas * 3.000000252 gwei)
-
-
+Block: 6542111
+Paid: 0.006344294039729898 ETH (2114403 gas * 3.000513166 gwei)
 
 ==========================
 
 ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
-Total Paid: 0.00837841570378686 ETH (2792805 gas * avg 3.000000252 gwei)
+Total Paid: 0.006344294039729898 ETH (2114403 gas * avg 3.000513166 gwei)
+##
+Start verification for (1) contracts
+Start verifying contract `0x4CAD1905BD03fb2268F75e8f780D7f11196a9994` deployed on blast
 
-Transactions saved to: /Users/shanzson/Code/aiapocalypto/broadcast/WordlingsNFT.s.sol/168587773/run-latest.json
+Submitting verification for [src/WordlingsNFT.sol:WordlingsNFT] 0x4CAD1905BD03fb2268F75e8f780D7f11196a9994.
+Submitted contract for verification:
+        Response: `OK`
+        GUID: `6ibajpzssjtwatkc3juee9v81xzs6dnxyypvec9macmjrrajkc`
+        URL: https://blastscan.io/address/0x4cad1905bd03fb2268f75e8f780d7f11196a9994
+Contract verification status:
+Response: `NOTOK`
+Details: `Pending in queue`
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+All (1) contracts were verified!
 
-Sensitive values saved to: /Users/shanzson/Code/aiapocalypto/cache/WordlingsNFT.s.sol/168587773/run-latest.json
+Transactions saved to: /Users/shanzson/Code/aiapocalypto/broadcast/WordlingsNFT.s.sol/81457/run-latest.json
+
+Sensitive values saved to: /Users/shanzson/Code/aiapocalypto/cache/WordlingsNFT.s.sol/81457/run-latest.json
 ```
 
 ## WordlingsNFT.sol Deployment on Arbitrum Sepolia
