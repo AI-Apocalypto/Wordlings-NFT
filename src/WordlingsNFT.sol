@@ -50,7 +50,7 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
     address public entropyProvider;
 
     // Event emitted when Wordlings Mystery Box is request
-    event MysteryBoxRequest(uint64 sequenceNumber);
+    event requestNFT(uint64 sequenceNumber);
 
     // Event emitted when the Wordlings Mystery Box is Minted
     event NFTMinted(address user, uint256 nftid);
@@ -112,24 +112,10 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
         gameStarted = false;
     }
 
-    // function that puts a cooldowntime of 15 minutes after 20 NFTs have minted
-    // If totalMinted amount is divisible by 20, then it will mean that the countdown kicks in
-    // function mintMysteryBox() public payable onlyWhenGameStarted {
-    //     if (nftMinted[msg.sender] != 0 && nftMinted[msg.sender] % 20 == 0 ){
-    //         require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
-    //     }
-    //     require(msg.value >= MINT_FEE, "Insufficient funds to mint NFT");
-    //     uint256 alphabet = random();
-    //     nftMinted[msg.sender] += 1;
-    //     lastMintedTime[msg.sender] = block.timestamp;
-    //     _mint(msg.sender, alphabet, 1, "");
-    //     _refund();
-    // }
-
     // function to refund the extra amount sent by the user
     function _refund() internal {
-        if (msg.value > MINT_FEE + getMysteryBoxFee()) {
-            payable(msg.sender).transfer(msg.value - MINT_FEE - getMysteryBoxFee());
+        if (msg.value > MINT_FEE + getEntropyFee()) {
+            payable(msg.sender).transfer(msg.value - MINT_FEE - getEntropyFee());
         }
     }
 
@@ -153,7 +139,7 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
     }
 
     // Entropy from Pyth
-    function requestMysteryBox(bytes32 userRandomNumber) external payable {
+    function requestNFT(bytes32 userRandomNumber) onlyWhenGameStarted external payable {
         if ( nftMinted[msg.sender] != 0 && nftMinted[msg.sender] % 20 == 0 ){
             require(block.timestamp - lastMintedTime[msg.sender] > 15 minutes, "You have to wait for 15 minutes to mint more NFTs"); 
         }
@@ -162,9 +148,8 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
         uint128 requestFee = entropy.getFee(entropyProvider);
         
         // check if the user has sent enough fees
-        // if (msg.value < requestFee) revert("not enough fees");
         require(msg.value >= MINT_FEE + requestFee, "Insufficient funds to mint NFT");
- 
+
         // pay the fees and request a random number from entropy
         uint64 sequenceNumber = entropy.requestWithCallback{ value: requestFee }(
             entropyProvider,
@@ -172,15 +157,14 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
         );
 
         requestedUsers[sequenceNumber] = msg.sender;
-
-        // _refund();
+        _refund();
  
         // emit event
-        emit MysteryBoxRequest(sequenceNumber);
+        emit requestNFT(sequenceNumber);
     }
 
-    // Get the fee to flip a coin. See the comment above about fees.
-    function getMysteryBoxFee() public view returns (uint256 fee) {
+    // Get the fee to request randomness from Pyth Network
+    function getEntropyFee() public view returns (uint256 fee) {
         fee = entropy.getFee(entropyProvider);
     }
 
