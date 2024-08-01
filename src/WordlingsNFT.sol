@@ -50,7 +50,7 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
     address public entropyProvider;
 
     // Event emitted when Wordlings Mystery Box is request
-    event requestNFT(uint64 sequenceNumber);
+    event nftRequested(uint64 sequenceNumber);
 
     // Event emitted when the Wordlings Mystery Box is Minted
     event NFTMinted(address user, uint256 nftid);
@@ -122,11 +122,6 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
     receive() external payable {
     }
 
-    // function that creates random number from 1 to 71
-    function random() internal view returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(block.difficulty, block.timestamp, block.number))) % 71 + 1;
-    }
-
     // function to remove all ether from the smart contract
     function withdraw(address receiver) public onlyOwner {
         require(receiver!=address(0), "Invalid Address");
@@ -160,7 +155,7 @@ contract WordlingsNFT is ERC1155, Ownable, ERC1155Pausable, ERC1155Burnable, IEn
         _refund();
  
         // emit event
-        emit requestNFT(sequenceNumber);
+        emit nftRequested(sequenceNumber);
     }
 
     // Get the fee to request randomness from Pyth Network
